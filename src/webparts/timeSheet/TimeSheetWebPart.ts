@@ -31,6 +31,7 @@ export default class TimeSheetWebPart extends BaseClientSideWebPart<ITimeSheetWe
     const element: React.ReactElement<ITimeSheetProps> = React.createElement(
       TimeSheet,
       {
+        wpContext: this.context,
         description: this.properties.description,
         isDarkTheme: this._isDarkTheme,
         environmentMessage: this._environmentMessage,

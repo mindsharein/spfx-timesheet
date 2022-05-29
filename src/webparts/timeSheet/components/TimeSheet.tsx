@@ -1,43 +1,107 @@
 import * as React from 'react';
+import { useState, useEffect } from "react";
+
 import styles from './TimeSheet.module.scss';
 import { ITimeSheetProps } from './ITimeSheetProps';
 import { escape } from '@microsoft/sp-lodash-subset';
 
-export default class TimeSheet extends React.Component<ITimeSheetProps, {}> {
-  public render(): React.ReactElement<ITimeSheetProps> {
-    const {
-      description,
-      isDarkTheme,
-      environmentMessage,
-      hasTeamsContext,
-      userDisplayName
-    } = this.props;
+import { Stack, IStackStyles, IStackTokens, IStackItemStyles } from "@fluentui/react/lib/Stack";
+import { DetailsList, IColumn, DetailsListLayoutMode, Selection, SelectionMode } from "@fluentui/react/lib/DetailsList";
 
-    return (
-      <section className={`${styles.timeSheet} ${hasTeamsContext ? styles.teams : ''}`}>
-        <div className={styles.welcome}>
-          <img alt="" src={isDarkTheme ? require('../assets/welcome-dark.png') : require('../assets/welcome-light.png')} className={styles.welcomeImage} />
-          <h2>Well done, {escape(userDisplayName)}!</h2>
-          <div>{environmentMessage}</div>
-          <div>Web part property value: <strong>{escape(description)}</strong></div>
-        </div>
-        <div>
-          <h3>Welcome to SharePoint Framework!</h3>
-          <p>
-            The SharePoint Framework (SPFx) is a extensibility model for Microsoft Viva, Microsoft Teams and SharePoint. It's the easiest way to extend Microsoft 365 with automatic Single Sign On, automatic hosting and industry standard tooling.
-          </p>
-          <h4>Learn more about SPFx development:</h4>
-          <ul className={styles.links}>
-            <li><a href="https://aka.ms/spfx" target="_blank">SharePoint Framework Overview</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-graph" target="_blank">Use Microsoft Graph in your solution</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-teams" target="_blank">Build for Microsoft Teams using SharePoint Framework</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-viva" target="_blank">Build for Microsoft Viva Connections using SharePoint Framework</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-store" target="_blank">Publish SharePoint Framework applications to the marketplace</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-api" target="_blank">SharePoint Framework API reference</a></li>
-            <li><a href="https://aka.ms/m365pnp" target="_blank">Microsoft 365 Developer Community</a></li>
-          </ul>
-        </div>
-      </section>
-    );
+import TimeSheetService from '../../../services/TimeSheetService';
+import ITimeSheet from '../../../models/ITimeSheet';
+import { EdgeChromiumHighContrastSelector } from 'office-ui-fabric-react';
+
+const columns : IColumn[] = [
+  {
+    key: "ID",
+    name: "ID",
+    fieldName: "ID",
+    minWidth: 25,
+    maxWidth: 50,
+    isResizable: true,
+  },
+  {
+    key: "Title",
+    name: "Title",
+    fieldName: "Title",
+    minWidth: 100,
+    maxWidth: 200,
+    isResizable: true,
+  },
+  {
+    key: "From",
+    name: "From",
+    fieldName: "From",
+    minWidth: 75,
+    maxWidth: 100,
+    isResizable: true,
+  },
+  {
+    key: "To",
+    name: "To",
+    fieldName: "To",
+    minWidth: 75,
+    maxWidth: 100,
+    isResizable: true,
+  },
+  {
+    key: "Hours",
+    name: "Hours",
+    fieldName: "Hours",
+    minWidth: 50,
+    maxWidth: 75,
+    isResizable: true,
   }
-}
+];
+
+export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
+  const {
+    wpContext,
+    description,
+    isDarkTheme,
+    environmentMessage,
+    hasTeamsContext,
+    userDisplayName
+  } = props;
+
+  // State
+  const [dataSvc, setDataSvc] = useState(new TimeSheetService(wpContext));
+  const [items, setItems] = useState([] as ITimeSheet[]);
+  
+  // Load Data 
+  useEffect(()=> {
+    console.log("Initializing TimeSheet Data Service...");
+    dataSvc.init()
+      .then(()=> {
+          console.log("Getting TimeSheet items...");
+
+          let data : ITimeSheet[] = [];
+          
+          dataSvc.getItems(100)
+            .then((data)=> {
+              console.log(`Fetched ${data.length} items!`);
+              console.log('Saving to state-calling setItems(data)');
+              setItems(data);
+            });
+      })
+      .catch((err)=> {
+        console.log("TimeSheet.tsx: Error fetching TimeSheet data: " + err);
+      });
+  },[true]);
+
+  return (
+    <div>
+      <h2>TimeSheets</h2>
+      <DetailsList 
+        items={ items } columns={ columns}
+        selectionMode={ SelectionMode.multiple }
+        layoutMode={ DetailsListLayoutMode.justified}
+        isHeaderVisible
+      >
+
+      </DetailsList>
+    </div>
+  );
+} 
+
