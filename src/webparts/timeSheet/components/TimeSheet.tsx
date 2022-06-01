@@ -13,8 +13,10 @@ import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import { Dropdown, DropdownMenuItemType, IDropdownOption, IDropdownStyles } from '@fluentui/react/lib/Dropdown';
 import { Separator } from '@fluentui/react/lib/Separator';
 
+
 import ITimeSheet from '../../../models/ITimeSheet';
 import IProject from '../../../models/IProject';
+import ITask from '../../../models/ITask';
 
 import { EdgeChromiumHighContrastSelector } from 'office-ui-fabric-react';
 
@@ -23,7 +25,11 @@ import { TextField, PrimaryButton,DefaultButton } from '@fluentui/react';
 import { useBoolean } from '@fluentui/react-hooks';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 
-import { initDS, getItems } from '../../../services/DataService';
+import { sp } from "@pnp/sp";
+import "@pnp/sp/presets/all";
+
+import PnPTelemetry from "@pnp/telemetry-js";
+import { DateTimePicker, DateConvention, TimeConvention } from '@pnp/spfx-controls-react/lib/DateTimePicker';
 
 
 
@@ -86,12 +92,16 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   // State
   const [items, setItems] = useState([] as ITimeSheet[]);
   const [projects, setProjects] = useState([] as IProject[]);
+  const [tasks,setTasks] = useState([] as ITask[]);
 
   const [addOpen, { setTrue: openAddPanel, setFalse: closeAddPanel, toggle: toggleAddPanel }] = useBoolean(false);
   const [count, setCount] = useState(0);
 
-  const [projectOptions, setProjectOptions] = useState([] as IDropdownOption[]); 
-
+  const [projectOptions, setProjectOptions] = useState([] as IDropdownOption[]);
+  const [taskOptions, setTaskOptions] = useState([] as IDropdownOption[]);
+  
+  const [fromDate, setFromDate] = useState(new Date());
+  const [toDate, setToDate] = useState(new Date());
 
 
   // Selection Object
@@ -134,14 +144,18 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
 
   // Load the Items
   useEffect(()=> {
-    (async () => {
-      initDS(wpContext);
+      // Opt-out of pnp telemetry
+      const telemetry = PnPTelemetry.getInstance();
+      telemetry.optOut();
 
-      let items = await getItems("TimeSheet");
-      setItems(items);
+      sp.setup({
+        spfxContext: wpContext
+      });
+
+      getTimeSheetItems();
 
       populateProjects();
-    })();
+
   },[true]);
 
   // Common Panel Footer Buttons
@@ -157,24 +171,55 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
     [closeAddPanel]
   );
 
+  const getTimeSheetItems = async () => {
+    let data = await sp.web.lists.getByTitle("TimeSheet").items.get();
+
+    setItems(data);
+  }
+
 
   // Populate Project Dropdown
   const populateProjects = () => {
     (async () => {
       if(projects.length==0) {
-        let items : IProject[] = await getItems("Projects");
-        setProjects(items);
+        let data : IProject[] = await sp.web.lists.getByTitle("Projects").items.get();
+        setProjects(data);
 
-        if(projectOptions.length==0) {
-          for(let i of items) {
-            projectOptions.push({
-              key: i["ID"].toString(),
-              text: `${i.Title} :: ${ i.Status }`
-            } as IDropdownOption);
-          }
+        let options : IDropdownOption[] = [];
+
+        for(let i of data) {
+          options.push({
+            key: i["ID"].toString(),
+            text: `${i.Title} :: ${ i.Status }`
+          } as IDropdownOption);
         }
+
+        setProjectOptions(options);
       }
     })();
+  }
+
+  const populateTasks = (projID?: number) => {
+
+    (async () => {
+      let data : ITask[] = await sp.web.lists.getByTitle("Tasks").items
+                            .expand("Project")
+                            .select("ID","Title","Project/Title","Project/ID")
+                            .filter(`Project/ID eq ${ projID }`)
+                            .get();
+      setTasks(data);
+
+      let options : IDropdownOption[] = [];
+
+      for(let i of data) {
+        options.push({
+          key: i["ID"].toString(),
+          text: `${i.Title}`
+        } as IDropdownOption);
+      }
+
+      setTaskOptions(options);
+    })();    
   }
 
   return (
@@ -200,16 +245,39 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
       >
         <Separator/>
         <Label>Add a new timesheet item by filling up the form below:</Label>
-        <Separator/>
         <Stack tokens={{ childrenGap: 5 }}>
             <Stack.Item>
-              <Dropdown options={ projectOptions } placeholder="Pick a Project" label='Project' />
+              <Dropdown options={ projectOptions } 
+                  placeholder="Pick a Project" 
+                  label='Project'
+                  onChange={(ev,option) => {
+                    console.log("On Change fired!");
+
+                    populateTasks(parseInt(option.key as string)); 
+                  }}/>
             </Stack.Item>
             <Stack.Item>
-              <TextField label='Task'></TextField>
+              <Dropdown options={ taskOptions } placeholder="Pick a Project Task" label='Task' />
             </Stack.Item>
             <Stack.Item>
-              <TextField label='Task'></TextField>
+              <DateTimePicker label="From"
+                  dateConvention={DateConvention.DateTime}
+                  timeConvention={TimeConvention.Hours24}
+                  value={fromDate}
+                  onChange={ ()=> { console.log('not implemented')} } />
+            </Stack.Item>
+            <Stack.Item>
+              <DateTimePicker label="To"
+                  dateConvention={DateConvention.DateTime}
+                  timeConvention={TimeConvention.Hours24}
+                  value={toDate}
+                  onChange={ ()=> { console.log('not implemented')} } />
+            </Stack.Item>
+            <Stack.Item>
+              <Label>Hours:</Label>
+            </Stack.Item>
+            <Stack.Item>
+              <TextField label="Notes" multiline rows={ 3 } />
             </Stack.Item>
         </Stack>
       </Panel>
