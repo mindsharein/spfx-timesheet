@@ -1,0 +1,16 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "version": "1.14.0",
+    "libraryName": "spfx-timesheet",
+    "libraryId": "8f5dc81e-b39d-4e1e-8673-5fe5ee641d9c",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "spfx-timesheet",
+    "solutionShortDescription": "spfx-timesheet description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}
