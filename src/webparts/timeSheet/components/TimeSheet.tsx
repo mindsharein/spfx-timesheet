@@ -25,13 +25,18 @@ import { TextField, PrimaryButton,DefaultButton } from '@fluentui/react';
 import { useBoolean } from '@fluentui/react-hooks';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 
-import { sp } from "@pnp/sp";
-import "@pnp/sp/presets/all";
+import { spfi,SPFI, SPFx } from '@pnp/sp';
+import "@pnp/sp";
+import "@pnp/sp/webs";
+import "@pnp/sp/lists";
+import "@pnp/sp/items";
+import "@pnp/sp/items/get-all";
+
+import "@pnp/logging";
 
 import PnPTelemetry from "@pnp/telemetry-js";
 import { DateTimePicker, DateConvention, TimeConvention } from '@pnp/spfx-controls-react/lib/DateTimePicker';
-
-
+import { LogLevel, PnPLogging } from '@pnp/logging';
 
 const columns : IColumn[] = [
   {
@@ -87,8 +92,6 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
     userDisplayName
   } = props;
 
-
-
   // State
   const [items, setItems] = useState([] as ITimeSheet[]);
   const [projects, setProjects] = useState([] as IProject[]);
@@ -102,7 +105,6 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
-
 
   // Selection Object
   const _selection = new Selection({
@@ -141,16 +143,21 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
     },
   ];
 
+  // Initialize & return SP Object
+  let _sp : SPFI = null;
+  const getSP = () : SPFI => {
+    if(_sp==null) {
+      _sp = spfi().using(SPFx(wpContext)).using(PnPLogging(LogLevel.Warning));
+    }
+
+    return _sp;
+  } 
 
   // Load the Items
   useEffect(()=> {
       // Opt-out of pnp telemetry
       const telemetry = PnPTelemetry.getInstance();
       telemetry.optOut();
-
-      sp.setup({
-        spfxContext: wpContext
-      });
 
       getTimeSheetItems();
 
@@ -172,7 +179,9 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   );
 
   const getTimeSheetItems = async () => {
-    let data = await sp.web.lists.getByTitle("TimeSheet").items.get();
+    const sp = getSP();
+
+    let data = await sp.web.lists.getByTitle("TimeSheet").items();
 
     setItems(data);
   }
@@ -182,7 +191,9 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const populateProjects = () => {
     (async () => {
       if(projects.length==0) {
-        let data : IProject[] = await sp.web.lists.getByTitle("Projects").items.get();
+        const sp = getSP();
+
+        let data : IProject[] = await sp.web.lists.getByTitle("Projects").items();
         setProjects(data);
 
         let options : IDropdownOption[] = [];
@@ -202,11 +213,16 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const populateTasks = (projID?: number) => {
 
     (async () => {
-      let data : ITask[] = await sp.web.lists.getByTitle("Tasks").items
+      const sp = getSP();
+
+      let data  = await sp.web.lists.getByTitle("Tasks").items
                             .expand("Project")
                             .select("ID","Title","Project/Title","Project/ID")
                             .filter(`Project/ID eq ${ projID }`)
-                            .get();
+                            .getAll();
+
+      console.log("Task Items: " + JSON.stringify(data));
+
       setTasks(data);
 
       let options : IDropdownOption[] = [];
