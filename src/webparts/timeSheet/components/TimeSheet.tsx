@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from "react";
 
+import { WebPartContext } from '@microsoft/sp-webpart-base';
+
 import styles from './TimeSheet.module.scss';
 import { ITimeSheetProps } from './ITimeSheetProps';
 
@@ -15,6 +17,7 @@ import ITimeSheet from '../../../models/ITimeSheet';
 import getSP from '../../../common/data';
 
 import NewForm from './NewForm';
+
 
 const columns : IColumn[] = [
   {
@@ -73,6 +76,8 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const [items, setItems] = useState([] as ITimeSheet[]);
   const [count, setCount] = useState(0);
   const [nfOpen,setNfOpen] = useState(false);
+  //const [loginName, setLoginName] = useState(wpContext.pageContext.user.loginName);
+  const [currentUser,setCurrentUser] = useState(null);
 
   // Selection Object
   const _selection = new Selection({
@@ -114,10 +119,19 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
  
   // Load the Items
   useEffect(()=> {
-    // Load TimeSheet Items // TBD:Only for Current User
+    // Load TimeSheet Items for Current User
     (async ()=> {
       const sp = getSP(wpContext);
-      let data = await sp.web.lists.getByTitle("TimeSheet").items();
+
+      const user = await sp.web.currentUser();
+      setCurrentUser(user);
+
+      let data = await sp.web.lists.getByTitle("TimeSheet").items
+                        .expand("Person")
+                        .select("ID, Title, From, To, Hours, Person/Id, Person/Name, Notes")
+                        .filter(`Person/Name eq '${user.LoginName}'`)
+                        .getAll();
+
       setItems(data);
     })();
   },[true]);
@@ -126,7 +140,7 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   return (
     <Stack tokens={{ childrenGap: 5 }}>
       <h2>TimeSheets</h2>
-      <h3><Label title='User:' />{ wpContext.pageContext.user.displayName } : { count }</h3>
+      <h3><Label title='User:' />{ currentUser!=null ? currentUser.Title : "" } : { count }</h3>
       <CommandBar items={ cbItems } />
       <DetailsList 
         items={ items } columns={ columns}
@@ -138,14 +152,14 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
       </DetailsList>
 
       { nfOpen && <NewForm wpContext={ wpContext } 
-                            isOpen={ nfOpen } 
+                            isOpen={ nfOpen }
+                            currentUser={ currentUser }
                             onClosed={ (flag: boolean) => { 
                                           setNfOpen(flag);
                                         } 
                                       }
                   /> 
       }
-
     </Stack>
   );
 } 

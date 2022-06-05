@@ -1,5 +1,7 @@
+import { WebPartContext } from "@microsoft/sp-webpart-base";
+
 export interface ITimeSheetProps {
-  wpContext: any;
+  wpContext: WebPartContext;
   description: string;
   isDarkTheme: boolean;
   environmentMessage: string;

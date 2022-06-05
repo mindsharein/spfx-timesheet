@@ -1,5 +1,6 @@
 import { spfi,SPFI, SPFx } from '@pnp/sp';
 import "@pnp/sp";
+import "@pnp/sp/site-users";
 import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";

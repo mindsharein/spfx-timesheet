@@ -27,8 +27,8 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
 
     const [projects, setProjects] = useState([] as IProject[]);
     const [tasks,setTasks] = useState([] as ITask[]);
-    const [selProject,setSelProject] = useState<IDropdownOption>(null);
-    const [selTask,setSelTask] = useState<IDropdownOption>(null);
+    const [selProject,setSelProject] = useState(null);
+    const [selTask,setSelTask] = useState(null);
     const [projectOptions, setProjectOptions] = useState([] as IDropdownOption[]);
     const [taskOptions, setTaskOptions] = useState([] as IDropdownOption[]);
     
@@ -36,11 +36,14 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
     const [toDate, setToDate] = useState(new Date());
 
     // Add Panel - Component Refs
-    const projRef = useRef(null);
-    const taskRef = useRef(null);
-    const fromRef = useRef(null);
-    const toRef = useRef(null);
-    const notesRef = useRef(null);
+    const refs = {
+      titleRef: useRef(null),
+      projRef: useRef(null),
+      taskRef: useRef(null),
+      fromRef: useRef(null),
+      toRef: useRef(null),
+      notesRef: useRef(null)
+    }
 
     const [addOpen, { setTrue: openAddPanel, setFalse: closeAddPanel, toggle: toggleAddPanel }] = useBoolean(false);
 
@@ -106,20 +109,21 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
         <div>
             <PrimaryButton onClick={ () => {
                 // TODO: Validations
-                console.log(fromRef.current.value);
+
+                console.log("113:SELECTED TASK : " + JSON.stringify(selTask));
 
                 // Save
                 let newItem : ITimeSheet = {
-                    Title: "",
-                    ProjetTask: parseInt(selTask.key as string),
+                    Title: refs.titleRef.current.value,
+                    ProjetTask: 0, //parseInt(selTaskRef.current.key as string),
                     From: fromDate,
                     To: toDate,
-                    Hours: 0,
-                    Person: 1,
-                    Notes: ""
+                    Hours: (toDate.valueOf() - fromDate.valueOf())/3600*1000,
+                    Person: props.currentUser.Id,
+                    Notes: refs.notesRef.current.value
                 };
 
-                console.log(JSON.stringify(newItem));
+                console.log("126:NEW ITEM: " + JSON.stringify(newItem));
 
                 // Close the Panel
                 props.onClosed(false);
@@ -148,8 +152,11 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
         <Label>Add a new timesheet item by filling up the form below:</Label>
         <Stack tokens={{ childrenGap: 5 }}>
             <Stack.Item>
+              <TextField label="Title" rows={ 2 } componentRef={ refs.titleRef } />                   
+            </Stack.Item>
+            <Stack.Item>
               <Dropdown options={ projectOptions } 
-                  componentRef={ projRef }
+                  componentRef={ refs.projRef }
                   placeholder="Pick a Project" 
                   label='Project'
                   onChange={(ev,option) => {
@@ -159,9 +166,11 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
             </Stack.Item>
             <Stack.Item>
               <Dropdown options={ taskOptions }
-                  componentRef={ taskRef } 
+                  componentRef={ refs.taskRef } 
                   onChange={(ev,option)=> {
                     setSelTask(option);
+                    console.log("SELECTED OPTION : " + JSON.stringify(selTask));
+
                   }}
                   placeholder="Pick a Project Task" label='Task' />
             </Stack.Item>
@@ -171,7 +180,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
             </Stack.Item>
             <Stack.Item>
               <DateTimePicker label="From"
-                  ref={ fromRef }
+                  ref={ refs.fromRef }
                   dateConvention={DateConvention.DateTime}
                   timeConvention={TimeConvention.Hours24}
                   value={fromDate}
@@ -181,7 +190,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
             </Stack.Item>
             <Stack.Item>
               <DateTimePicker label="To"
-                  ref={ toRef }
+                  ref={ refs.toRef }
                   dateConvention={DateConvention.DateTime}
                   timeConvention={TimeConvention.Hours24}
                   value={toDate}
@@ -194,7 +203,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
             </Stack.Item>
             <Stack.Item>
               <TextField label="Notes"
-                  componentRef={ notesRef } 
+                  componentRef={ refs.notesRef } 
                   multiline rows={ 3 } />
             </Stack.Item>
         </Stack>
