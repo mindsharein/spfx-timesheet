@@ -1,9 +1,9 @@
 export default interface ITimeSheet {
     Title : string;
-    ProjetTask : number;
+    ProjectTaskId : number;
     From: Date;
     To: Date;
     Hours: number;
-    Person: number;
+    PersonId: number;
     Notes: string;
 }

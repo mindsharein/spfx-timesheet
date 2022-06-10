@@ -8,8 +8,10 @@ import { Stack, IStackStyles, IStackTokens, IStackItemStyles } from "@fluentui/r
 import { Label } from '@fluentui/react/lib/Label';
 
 import { Panel, PanelType } from '@fluentui/react/lib/Panel';
-import { Dropdown, IDropdownOption} from '@fluentui/react/lib/Dropdown';
+import { Dropdown, IDropdown, IDropdownOption, IDropdownProps} from '@fluentui/react/lib/Dropdown';
 import { DateTimePicker, DateConvention, TimeConvention } from '@pnp/spfx-controls-react/lib/DateTimePicker';
+import { Dialog, DialogType, DialogFooter } from "@fluentui/react/lib/Dialog";
+
 import { Separator } from '@fluentui/react/lib/Separator';
 
 import ITimeSheet from '../../../models/ITimeSheet';
@@ -22,6 +24,10 @@ import { useBoolean } from '@fluentui/react-hooks';
 import { INewFormProps } from './INewFormProps';
 
 import getSP from '../../../common/data';
+import { fromPairs } from '@microsoft/sp-lodash-subset';
+import { DetailsColumnBase } from 'office-ui-fabric-react';
+import { IItemAddResult } from '@pnp/sp/items';
+
 
 export default function NewForm(props: INewFormProps) : JSX.Element {
 
@@ -39,11 +45,11 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
     const refs = {
       titleRef: useRef(null),
       projRef: useRef(null),
-      taskRef: useRef(null),
-      fromRef: useRef(null),
-      toRef: useRef(null),
+      taskRef: useRef<IDropdown>(null),
+      fromRef: useRef<DateTimePicker>(null),
+      toRef: useRef<DateTimePicker>(null),
       notesRef: useRef(null)
-    }
+    };
 
     const [addOpen, { setTrue: openAddPanel, setFalse: closeAddPanel, toggle: toggleAddPanel }] = useBoolean(false);
 
@@ -102,6 +108,39 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
         })();    
     }
 
+    // Create TimeSheet item from entry Form
+    const getItemFromForm = () : ITimeSheet => {
+      return {
+        Title: refs.titleRef.current.value,
+        ProjectTaskId: parseInt(refs.taskRef.current.selectedOptions[0].key as string),
+        From: fromDate,
+        To: toDate,
+        Hours: DateDiffHrs(toDate,fromDate),
+        PersonId: props.currentUser.Id,
+        Notes: refs.notesRef.current.value
+      } as ITimeSheet
+    }
+
+    // Adds New TimeSheet item
+    const addNewItem = async (newItem: ITimeSheet) : Promise<string> => {
+      try {
+        let sp = getSP(props.wpContext);
+
+        console.log("126:Item : " + JSON.stringify(newItem));
+
+        let result: IItemAddResult = await sp.web.lists.getByTitle("TimeSheet").items.add(newItem);
+        
+        console.log(result);
+
+        return "";
+        
+      } catch(ex) {
+
+        console.log(JSON.stringify(ex));
+
+        return ex.toString();
+      }
+    }
 
     // Common Panel Footer Buttons
     const onRenderPanelFooter = React.useCallback(
@@ -113,20 +152,18 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
                 console.log("113:SELECTED TASK : " + JSON.stringify(selTask));
 
                 // Save
-                let newItem : ITimeSheet = {
-                    Title: refs.titleRef.current.value,
-                    ProjetTask: 0, //parseInt(selTaskRef.current.key as string),
-                    From: fromDate,
-                    To: toDate,
-                    Hours: (toDate.valueOf() - fromDate.valueOf())/3600*1000,
-                    Person: props.currentUser.Id,
-                    Notes: refs.notesRef.current.value
-                };
+                let newItem : ITimeSheet = getItemFromForm();
 
-                console.log("126:NEW ITEM: " + JSON.stringify(newItem));
+                addNewItem(newItem).then(m => {
+                  if(m=="") {
+                    alert("Added Item Successfully!");
+                    props.onItemAdded(true);
 
-                // Close the Panel
-                props.onClosed(false);
+                    props.onClosed(false);
+                  } else {
+                    alert("Add Failed: " + m);
+                  }
+                });
             }} 
             styles={{ root: { marginRight: 8 } }}
             >
@@ -137,7 +174,6 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
         ),
         [closeAddPanel]
     );
-
 
     return (
     <Panel headerText="New Timesheet item" 
@@ -169,14 +205,10 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
                   componentRef={ refs.taskRef } 
                   onChange={(ev,option)=> {
                     setSelTask(option);
-                    console.log("SELECTED OPTION : " + JSON.stringify(selTask));
+                    console.log("172:SELECTED OPTION : " + JSON.stringify(selTask));
 
                   }}
                   placeholder="Pick a Project Task" label='Task' />
-            </Stack.Item>
-            <Stack.Item>
-              <TextField label="Task Details"
-                    multiline rows={ 2 } />              
             </Stack.Item>
             <Stack.Item>
               <DateTimePicker label="From"
@@ -199,7 +231,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
                   }} />
             </Stack.Item>
             <Stack.Item>
-              <Label>Hours:</Label>
+              <Label>Hours: { DateDiffHrs(toDate,fromDate) }</Label>
             </Stack.Item>
             <Stack.Item>
               <TextField label="Notes"
@@ -209,4 +241,10 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
         </Stack>
       </Panel>
     );
+}
+
+// Finds difference between two dates in hours (2 decimal places)
+const DateDiffHrs = (from: Date, to: Date) : number => {
+
+  return parseFloat(((from.getTime() - to.getTime())/3600000).toFixed(2));
 }

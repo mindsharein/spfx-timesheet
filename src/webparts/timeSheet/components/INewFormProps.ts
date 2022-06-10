@@ -5,5 +5,6 @@ export interface INewFormProps {
     currentUser: ISiteUserInfo;
     isOpen: boolean;
     onClosed(msg: boolean): void;
+    onItemAdded?(refreshData: boolean): void;
 }
   

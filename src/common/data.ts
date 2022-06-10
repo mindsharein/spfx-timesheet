@@ -13,12 +13,13 @@ import PnPTelemetry from "@pnp/telemetry-js";
 import { LogLevel, PnPLogging } from '@pnp/logging';
 
 import { WebPartContext } from '@microsoft/sp-webpart-base';
+import ITimeSheet from '../models/ITimeSheet';
 
 
  // Initialize & return SP Object
  let _sp : SPFI = null;
 
- export default function getSP(wpContext: WebPartContext) : SPFI {
+export default function getSP(wpContext: WebPartContext) : SPFI {
     // Turnoff telemetry
     PnPTelemetry.getInstance().optOut();
 
@@ -27,5 +28,38 @@ import { WebPartContext } from '@microsoft/sp-webpart-base';
    }
 
    return _sp;
- } 
+}
+
+export async function getCurrentUser(wpContext) {
+  const sp = getSP(wpContext);
+
+  const user = await sp.web.currentUser();
+
+  return user;
+}
+
+export async function getTimeSheetItems(wpContext: WebPartContext) : Promise<ITimeSheet[]> {
+  const sp = getSP(wpContext);
+
+  const user = await sp.web.currentUser();
+
+  let data = await sp.web.lists.getByTitle("TimeSheet").items
+                    .expand("Person")
+                    .select("ID, Title, From, To, Hours, Person/Id, Person/Name, Notes")
+                    .filter(`Person/Name eq '${user.LoginName}'`)
+                    .getAll();
+
+  return data;
+ }
+
+ export async function deleteTimeSheetItem(id: number, wpContext:WebPartContext) : Promise<string> {
+   try {
+    const sp = getSP(wpContext);
+    let data = await sp.web.lists.getByTitle("TimeSheet").items.getById(id).delete();
+
+    return "";
+   } catch(ex) {
+     return "Error deleting item: " + ex.toString();
+   }
+ }
 

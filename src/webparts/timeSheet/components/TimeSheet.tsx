@@ -14,7 +14,7 @@ import { Label } from '@fluentui/react/lib/Label';
 
 import ITimeSheet from '../../../models/ITimeSheet';
 
-import getSP from '../../../common/data';
+import getSP, { deleteTimeSheetItem, getCurrentUser, getTimeSheetItems } from '../../../common/data';
 
 import NewForm from './NewForm';
 
@@ -76,7 +76,6 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const [items, setItems] = useState([] as ITimeSheet[]);
   const [count, setCount] = useState(0);
   const [nfOpen,setNfOpen] = useState(false);
-  //const [loginName, setLoginName] = useState(wpContext.pageContext.user.loginName);
   const [currentUser,setCurrentUser] = useState(null);
 
   // Selection Object
@@ -85,6 +84,8 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
       setCount(_selection.getSelectedCount());
     }
   });
+
+  const selection = useRef(_selection);
 
   // Toolbar buttons
   const cbItems : ICommandBarItemProps[] = [
@@ -112,28 +113,46 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
       iconProps: {
         iconName: 'Delete'
       },
+      onClick: () => {
+        if(confirm("Delete this Item?")) {
+          let item = selection.current.getSelection()[0];
+
+          let id = item["ID"] as number;
+
+          deleteTimeSheetItem(id,wpContext)
+            .then(m=> {
+              if(m=="") {
+                alert("Item Deleted!");
+                loadItems();
+              } else {
+                alert(m);
+              }
+            });
+        }
+      },
       disabled: count == 0 ? true : false
     },
   ];
 
- 
-  // Load the Items
-  useEffect(()=> {
-    // Load TimeSheet Items for Current User
-    (async ()=> {
-      const sp = getSP(wpContext);
-
-      const user = await sp.web.currentUser();
+  // Loads timesheet items
+  const loadItems = async () => {
+    try {
+      let user = await getCurrentUser(wpContext);
       setCurrentUser(user);
 
-      let data = await sp.web.lists.getByTitle("TimeSheet").items
-                        .expand("Person")
-                        .select("ID, Title, From, To, Hours, Person/Id, Person/Name, Notes")
-                        .filter(`Person/Name eq '${user.LoginName}'`)
-                        .getAll();
-
+      let data : ITimeSheet[] = await getTimeSheetItems(wpContext);
       setItems(data);
-    })();
+
+    } catch(ex) {
+      console.log("Error loading TimeSheet items : " + ex.toString());
+    }
+  }
+
+ 
+  // Initial Load
+  useEffect(()=> {
+    // Load TimeSheet Items for Current User
+    loadItems();
   },[true]);
 
 
@@ -158,6 +177,12 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
                                           setNfOpen(flag);
                                         } 
                                       }
+                            onItemAdded={ (refresh: boolean) => {
+                              // Reload items as new item available
+                              if(refresh) {
+                                loadItems();
+                              }
+                            }}
                   /> 
       }
     </Stack>
