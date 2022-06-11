@@ -2,13 +2,13 @@
 
 ## Summary
 
-Short summary on functionality and used technologies.
+Sample project to demonstrate PnP JS functionality with Microsoft Fluent UI and React based SharePoint WebParts
 
 [picture of the solution in action, if possible]
 
 ## Used SharePoint Framework Version
 
-![version](https://img.shields.io/badge/version-1.13-green.svg)
+![version](https://img.shields.io/badge/version-1.14-green.svg)
 
 ## Applies to
 
@@ -19,20 +19,20 @@ Short summary on functionality and used technologies.
 
 ## Prerequisites
 
-> Any special pre-requisites?
+> SharePoint Framework Generator from Microsoft is required to generate this project
+> This project uses spfx-fastserve instead of the standard gulp based build system
 
 ## Solution
 
 Solution|Author(s)
 --------|---------
-folder name | Author details (name, company, twitter alias with link)
+Vijay Natrajan (name, company, twitter alias with link)
 
 ## Version history
 
 Version|Date|Comments
 -------|----|--------
-1.1|March 10, 2021|Update comment
-1.0|January 29, 2021|Initial release
+1.0|June 11, 2022|Work in progress
 
 ## Disclaimer
 
@@ -46,19 +46,19 @@ Version|Date|Comments
 - Ensure that you are at the solution folder
 - in the command-line run:
   - **npm install**
-  - **gulp serve**
+  - **npm run serve**
 
 > Include any additional steps as needed.
 
 ## Features
 
-Description of the extension that expands upon high-level summary above.
+This project demonstrates Fluent UI based React Components along with PnP JS 3.x api for REST API calls.
 
-This extension illustrates the following concepts:
+This WebPart is a single WebPart with multiple React components and illustrates the following concepts:
 
-- topic 1
-- topic 2
-- topic 3
+- SPFx React WebParts
+- Fluent UI controls such as DetailsList, Panel, DropDown, Dialog, PnP DateTime picker 
+- PnP 3.x API for CRUD operations against SharePoint Online lists
 
 > Notice that better pictures and documentation will increase the sample usage and the value you are providing for others. Thanks for your submissions advance.
 
