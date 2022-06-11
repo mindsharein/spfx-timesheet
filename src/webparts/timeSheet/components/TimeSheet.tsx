@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect, useRef } from "react";
-
-import { WebPartContext } from '@microsoft/sp-webpart-base';
+import { useBoolean } from '@fluentui/react-hooks';
 
 import styles from './TimeSheet.module.scss';
 import { ITimeSheetProps } from './ITimeSheetProps';
@@ -14,9 +13,12 @@ import { Label } from '@fluentui/react/lib/Label';
 
 import ITimeSheet from '../../../models/ITimeSheet';
 
-import getSP, { deleteTimeSheetItem, getCurrentUser, getTimeSheetItems } from '../../../common/data';
+import { deleteTimeSheetItem, getCurrentUser, getTimeSheetItems } from '../../../common/data';
 
 import NewForm from './NewForm';
+import ConfirmDialog from './ConfirmDialog';
+
+import Message, { IMessageProps, MessageType } from './Message';
 
 
 const columns : IColumn[] = [
@@ -78,6 +80,12 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const [nfOpen,setNfOpen] = useState(false);
   const [currentUser,setCurrentUser] = useState(null);
 
+  const [deletePrompt, { setTrue: showDeletePrompt, setFalse: hideDeletePrompt, toggle: togglePrompt }] = useBoolean(false);
+
+  const [mesgText,setMesgText] = useState<string>("");
+  const [mesgType, setMesgType] = useState<MessageType>(MessageType.success);
+  const [showMessage,setShowMessage] = useState<boolean>(false);
+
   // Selection Object
   const _selection = new Selection({
     onSelectionChanged: () => {
@@ -114,21 +122,7 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
         iconName: 'Delete'
       },
       onClick: () => {
-        if(confirm("Delete this Item?")) {
-          let item = selection.current.getSelection()[0];
-
-          let id = item["ID"] as number;
-
-          deleteTimeSheetItem(id,wpContext)
-            .then(m=> {
-              if(m=="") {
-                alert("Item Deleted!");
-                loadItems();
-              } else {
-                alert(m);
-              }
-            });
-        }
+        showDeletePrompt();
       },
       disabled: count == 0 ? true : false
     },
@@ -148,7 +142,18 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
     }
   }
 
- 
+  const showAlert = (text: string, type: MessageType) : void => {
+    setMesgText(text);
+    setMesgType(type);
+    setShowMessage(true);
+  }
+
+  const clearAlert = () => {
+    setMesgText("");
+    setMesgType(MessageType.success);
+    setShowMessage(false);
+  }
+
   // Initial Load
   useEffect(()=> {
     // Load TimeSheet Items for Current User
@@ -157,35 +162,63 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
 
 
   return (
-    <Stack tokens={{ childrenGap: 5 }}>
-      <h2>TimeSheets</h2>
-      <h3><Label title='User:' />{ currentUser!=null ? currentUser.Title : "" } : { count }</h3>
-      <CommandBar items={ cbItems } />
-      <DetailsList 
-        items={ items } columns={ columns}
-        selectionMode={ SelectionMode.single }
-        layoutMode={ DetailsListLayoutMode.justified}
-        selection = { _selection }
-        isHeaderVisible
-      >
-      </DetailsList>
+    <>
+      { showMessage && <Message text={ mesgText } type={ mesgType } reset={ clearAlert } /> }
+      <Stack tokens={{ childrenGap: 5 }}>
+        <h2>TimeSheets</h2>
+        <h3><Label title='User:' />{ currentUser!=null ? currentUser.Title : "" } : { count }</h3>
+        <CommandBar items={ cbItems } />
+        <DetailsList 
+          items={ items } columns={ columns}
+          selectionMode={ SelectionMode.single }
+          layoutMode={ DetailsListLayoutMode.justified}
+          selection = { _selection }
+          isHeaderVisible
+        >
+        </DetailsList>
 
-      { nfOpen && <NewForm wpContext={ wpContext } 
-                            isOpen={ nfOpen }
-                            currentUser={ currentUser }
-                            onClosed={ (flag: boolean) => { 
-                                          setNfOpen(flag);
-                                        } 
-                                      }
-                            onItemAdded={ (refresh: boolean) => {
-                              // Reload items as new item available
-                              if(refresh) {
-                                loadItems();
-                              }
-                            }}
-                  /> 
-      }
-    </Stack>
+        { nfOpen && <NewForm wpContext={ wpContext } 
+                              isOpen={ nfOpen }
+                              currentUser={ currentUser }
+                              onClosed={ (flag: boolean) => { 
+                                            setNfOpen(flag);
+                                          } 
+                                        }
+                              onItemAdded={ (refresh: boolean) => {
+                                // Reload items as new item available
+                                if(refresh) {
+                                  loadItems();
+                                }
+                              }}
+                    /> 
+        }
+      </Stack>
+      <ConfirmDialog show={ deletePrompt } 
+              title="Delete Item?" 
+              message="Do you want to delete this TimeSheet item?" 
+              onClick={(del: boolean)=> {
+                hideDeletePrompt();
+
+                (async () => {
+                  if(del) {
+                    let item = selection.current.getSelection()[0];
+          
+                    let id = item["ID"] as number;
+          
+                    deleteTimeSheetItem(id,wpContext)
+                      .then(m=> {
+                        if(m=="") {
+                          showAlert("Item Added successfully!",MessageType.success);
+                          loadItems();
+                        } else {
+                          showAlert("Error deleting item : " + m,MessageType.error);
+                        }
+                      });
+                  }
+                })();
+
+          }} />
+    </>
   );
 } 
 

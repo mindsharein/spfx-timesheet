@@ -10,7 +10,7 @@ import { Label } from '@fluentui/react/lib/Label';
 import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import { Dropdown, IDropdown, IDropdownOption, IDropdownProps} from '@fluentui/react/lib/Dropdown';
 import { DateTimePicker, DateConvention, TimeConvention } from '@pnp/spfx-controls-react/lib/DateTimePicker';
-import { Dialog, DialogType, DialogFooter } from "@fluentui/react/lib/Dialog";
+
 
 import { Separator } from '@fluentui/react/lib/Separator';
 
@@ -24,9 +24,11 @@ import { useBoolean } from '@fluentui/react-hooks';
 import { INewFormProps } from './INewFormProps';
 
 import getSP from '../../../common/data';
-import { fromPairs } from '@microsoft/sp-lodash-subset';
-import { DetailsColumnBase } from 'office-ui-fabric-react';
+
 import { IItemAddResult } from '@pnp/sp/items';
+
+import { DateDiffHrs } from '../../../common/util';
+import ConfirmDialog from './ConfirmDialog';
 
 
 export default function NewForm(props: INewFormProps) : JSX.Element {
@@ -40,6 +42,8 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
     
     const [fromDate, setFromDate] = useState(new Date());
     const [toDate, setToDate] = useState(new Date());
+
+    const [confirm,setConfirm] = useState(false);
 
     // Add Panel - Component Refs
     const refs = {
@@ -179,7 +183,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
     <Panel headerText="New Timesheet item" 
         isOpen={ props.isOpen } 
         type={ PanelType.medium }
-        onDismiss={ closeAddPanel }
+        onDismiss={ () => props.onClosed(false) }
         isFooterAtBottom
         onRenderFooterContent={ onRenderPanelFooter }
         onLoad={ populateProjects }
@@ -239,12 +243,15 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
                   multiline rows={ 3 } />
             </Stack.Item>
         </Stack>
+        <ConfirmDialog show={ confirm } 
+            title="Add Item?" 
+            message="Do you want to add this item?" 
+            onClick={(result: boolean)=> {
+
+        }} 
+          />
       </Panel>
+
     );
 }
 
-// Finds difference between two dates in hours (2 decimal places)
-const DateDiffHrs = (from: Date, to: Date) : number => {
-
-  return parseFloat(((from.getTime() - to.getTime())/3600000).toFixed(2));
-}
