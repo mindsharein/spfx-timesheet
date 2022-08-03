@@ -9,7 +9,7 @@ import { Label } from '@fluentui/react/lib/Label';
 
 import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import { Dropdown, IDropdown, IDropdownOption, IDropdownProps} from '@fluentui/react/lib/Dropdown';
-import { DateTimePicker, DateConvention, TimeConvention } from '@pnp/spfx-controls-react/lib/DateTimePicker';
+import { DateTimePicker, DateConvention, TimeConvention, TimeDisplayControlType } from '@pnp/spfx-controls-react/lib/DateTimePicker';
 
 
 import { Separator } from '@fluentui/react/lib/Separator';
@@ -219,6 +219,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
                   ref={ refs.fromRef }
                   dateConvention={DateConvention.DateTime}
                   timeConvention={TimeConvention.Hours24}
+                  timeDisplayControlType={TimeDisplayControlType.Dropdown}
                   value={fromDate}
                   onChange={ (d: Date)=> { 
                     setFromDate(d);
@@ -229,6 +230,7 @@ export default function NewForm(props: INewFormProps) : JSX.Element {
                   ref={ refs.toRef }
                   dateConvention={DateConvention.DateTime}
                   timeConvention={TimeConvention.Hours24}
+                  timeDisplayControlType={TimeDisplayControlType.Dropdown}
                   value={toDate}
                   onChange={ (d: Date)=> { 
                     setToDate(d);

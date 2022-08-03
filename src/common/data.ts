@@ -44,11 +44,11 @@ export async function getTimeSheetItems(wpContext: WebPartContext) : Promise<ITi
   const user = await sp.web.currentUser();
 
   let data = await sp.web.lists.getByTitle("TimeSheet").items
-                    .expand("Person")
-                    .select("ID, Title, From, To, Hours, Person/Id, Person/Name, Notes")
+                    .expand("Person, ProjectTask")
+                    .select("ID, Title, From, To, Hours, Person/Id, Person/Name, Person/FirstName, Person/LastName, ProjectTask/Id, ProjectTask/Title, Notes")
                     .filter(`Person/Name eq '${user.LoginName}'`)
                     .getAll();
-
+  console.log(JSON.stringify(data));
   return data;
  }
 

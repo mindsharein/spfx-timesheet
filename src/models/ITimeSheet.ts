@@ -4,6 +4,8 @@ export default interface ITimeSheet {
     From: Date;
     To: Date;
     Hours: number;
+    Person?: any;
+    ProjectTask?: any;
     PersonId: number;
     Notes: string;
 }

@@ -31,6 +31,15 @@ const columns : IColumn[] = [
     isResizable: true,
   },
   {
+    key: "ProjectTask",
+    name: "Project Task",
+    fieldName: "ProjectTask",
+    minWidth: 100,
+    maxWidth: 150,
+    isResizable: true,
+    onRender: (item: ITimeSheet) => <div>{ item.ProjectTask.Title}</div>
+  },
+  {
     key: "Title",
     name: "Title",
     fieldName: "Title",
@@ -45,6 +54,7 @@ const columns : IColumn[] = [
     minWidth: 75,
     maxWidth: 100,
     isResizable: true,
+    onRender: (item: ITimeSheet) => <div>{ formatDateTime(new Date(item.From.toString()))  }</div>
   },
   {
     key: "To",
@@ -53,6 +63,7 @@ const columns : IColumn[] = [
     minWidth: 75,
     maxWidth: 100,
     isResizable: true,
+    onRender: (item: ITimeSheet) => <div>{ formatDateTime(new Date(item.To.toString())) }</div>
   },
   {
     key: "Hours",
@@ -61,8 +72,25 @@ const columns : IColumn[] = [
     minWidth: 50,
     maxWidth: 75,
     isResizable: true,
+  },
+  {
+    key: "Person",
+    name: "Person",
+    fieldName: "Person",
+    minWidth: 75,
+    maxWidth: 100,
+    isResizable: true,
+    onRender: (item: ITimeSheet) => <div>{ item.Person.FirstName } { item.Person.LastName }</div>
   }
 ];
+
+function formatDateTime(d: Date) : string {
+  return `${pad0(d.getDay())}/${pad0(d.getMonth())}/${d.getFullYear()} ${pad0(d.getHours())}:${pad0(d.getMinutes())}`;
+}
+
+function pad0(n: number) : string {
+  return '' + (n < 10 ? '0'+n :n);
+}
 
 export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const {
@@ -86,9 +114,12 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const [mesgType, setMesgType] = useState<MessageType>(MessageType.success);
   const [showMessage,setShowMessage] = useState<boolean>(false);
 
+  const [currentSelection,setCurrentSelection] = useState([] as ITimeSheet[]);
+
   // Selection Object
   const _selection = new Selection({
     onSelectionChanged: () => {
+      setCurrentSelection(_selection.getItems() as ITimeSheet[]);
       setCount(_selection.getSelectedCount());
     }
   });
@@ -132,6 +163,7 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
   const loadItems = async () => {
     try {
       let user = await getCurrentUser(wpContext);
+
       setCurrentUser(user);
 
       let data : ITimeSheet[] = await getTimeSheetItems(wpContext);
@@ -193,6 +225,19 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
                     /> 
         }
       </Stack>
+      <div>
+        <h2>Current Selection</h2>
+        <div>
+          Title : { currentSelection.length > 0 ? currentSelection[0].Title : "" } <br/>
+          Task ID : { currentSelection.length > 0 ? currentSelection[0].ProjectTask.Id : "" } <br/>
+          Start : { currentSelection.length > 0 ? currentSelection[0].From : "" } <br/>
+          End : { currentSelection.length > 0 ? currentSelection[0].To : "" } <br/>
+          PersonID: { currentSelection.length > 0 ? currentSelection[0].Person.Id : "" } <br/>
+          Person : { currentSelection.length > 0 ? currentSelection[0].Person.Name : "" } <br/>
+          Project Task : { currentSelection.length > 0 ? currentSelection[0].ProjectTask.Title : "" } <br/>
+          Notes:  { currentSelection.length > 0 ? currentSelection[0].Notes : "" } <br/>
+        </div>
+      </div>
       <ConfirmDialog show={ deletePrompt } 
               title="Delete Item?" 
               message="Do you want to delete this TimeSheet item?" 
@@ -208,7 +253,7 @@ export default function TimeSheet(props: ITimeSheetProps) : JSX.Element {
                     deleteTimeSheetItem(id,wpContext)
                       .then(m=> {
                         if(m=="") {
-                          showAlert("Item Added successfully!",MessageType.success);
+                          showAlert("Item Deleted successfully!",MessageType.success);
                           loadItems();
                         } else {
                           showAlert("Error deleting item : " + m,MessageType.error);
